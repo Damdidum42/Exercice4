@@ -1,0 +1,33 @@
+% Parametres physiques :
+tFin     = 100
+G        = 6.674e-11
+p0       = 0 %1.225
+RT       = 6371.008e3
+
+mT       = 1
+mL       = 1
+mA       = 1
+
+%Conditions initiales :
+%position et vitesse initiale de la Terre
+xT_0    = 0
+yT_0    = 0
+vTx_0   = 0
+vTy_0   = 0
+
+%position et vitesse initiale de la Lune
+xL_0    = 0
+yL_0    = 0
+vLx_0   = 0
+vLy_0   = 0
+
+%position et vitesse initiale du vaisseau
+xA_0    = 0
+yA_0    = 0
+vAx_0   = 0
+vAy_0   = 0
+
+% Parametres numeriques :
+dt       = 1e-2
+output   = out/a.out
+sampling = 1
