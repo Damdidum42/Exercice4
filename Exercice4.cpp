@@ -37,10 +37,6 @@ private:
   }
 
   void step(){//EFFECTUE UN PAS DE TEMPS DE LA SIMULATION
-    cout<<"\nt= "<<t<< " ; Tfin ="<<tFin<<" ; y = (";
-    for(size_t i(0); i<y.size(); i++)
-    cout<<y[i]<<" , ";
-    cout<<endl;
     dt_adapt(y);
     y = do_one_step(y,dt);
 
@@ -90,15 +86,22 @@ private:
             }
         }
 	  }
-
+		double S = 3.14*pow(d/2,2);
+		valarray<double> pos_terre = y[slice(0,2,1)];
+		valarray<double> pos_Appollo = y[slice(4,2,1)];
+		valarray<double> vit_terre = y[slice(6,2,1)];
+		valarray<double> vit_Appollo = y[slice(10,2,1)];
+		
+		valarray<double> F_train = -0.5*p0*exp(-(norm(pos_terre-pos_Appollo)-RT)/lambda)*S*C_x*norm(vit_terre-vit_Appollo)*(vit_Appollo-vit_terre);
+		acc[slice(10,2,1)] += F_train;
 
       return acc;
 
   }
 
-  double rho(double r){//FONCTION QUI RETOURNE LA DENSITE EN FONCTION DE LA DISTANCE r
+  /*double rho(double r){//FONCTION QUI RETOURNE LA DENSITE EN FONCTION DE LA DISTANCE r
     return p0*exp(-(r-RT)/lambda);
-  }
+  }*/
 
   double Emec(valarray<double> y){//CALCUL DE l'ENERGIE MECANIQUE DU SYSTEME
     double Ecin(0.);
@@ -143,7 +146,7 @@ private:
         if(dt>=1e8){
         dt=1e8;
         }
-    cout<<"dt: "<<dtold<<"->"<<dt <<endl;
+    //cout<<"dt: "<<dtold<<"->"<<dt <<endl;
     }
     else do{
             dt = dt*fact*pow( (epsilon/d) , 1.0/(n+1) );
@@ -154,7 +157,7 @@ private:
             y_prime = do_one_step(y,dt*0.5);
             y2 = do_one_step(y_prime,0.5*dt);
             d  = norm(y2-y1);
-            cout<<"dt: "<<dtold<<" -> "<< dt <<endl;
+            //cout<<"dt: "<<dtold<<" -> "<< dt <<endl;
             dtold= dt;
     }while(d>epsilon);
 
