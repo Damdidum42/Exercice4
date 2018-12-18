@@ -1,17 +1,17 @@
 % Parametres physiques :
-tFin     = 4.0
-epsilon  = 1e-2
+tFin     = 2.0
+epsilon  = 1e-5
 
 G        = 6.67408e-11
-p0       = 0.0
+p0       = 1.2
 RT       = 6378.1e3
 RL       = 1737e3
-lambda   = 1
+lambda   = 7238.2
 C_x = 0.3
 d = 3.9
 
 mT       = 5.972e24
-mL       = 0 %7.3477e11
+mL       = 7.3477e11
 mA       = 5809
 
 %Conditions initiales :
