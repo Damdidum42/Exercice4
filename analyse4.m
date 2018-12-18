@@ -22,12 +22,18 @@ data = load(filename)
     vLy = data(:,11);
     vAx = data(:,12);
     vAy = data(:,13);
+    
+    dt = data(:,14);
+    AccApp = data(:,15);
+    nbr_pas = data(:,16);
+    Pfrott = data(:,17);
+    Pfrott(1)=0
 %==============================================================
 %constantes de la simulation
 
 RT = 6378.1*1000 %rayon terrestre
 RL = 1737 * 1000 %rayon lunaire
-RA = 300 %rayon du vaisseau (pour qu'il soit visible)
+RA = 30000 %rayon du vaisseau (pour qu'il soit visible)
 
 
 %===============================================================
@@ -48,10 +54,49 @@ RA = 300 %rayon du vaisseau (pour qu'il soit visible)
     axis equal
     xlabel('x [m]')
     ylabel('y [m]')
+
+figure('name','bla')
+r = ( (xA-xT).^2 + (yA-yT).^2 ).^(0.5)
+%[P,i,pk]=peak(t,r)
+plot(t,r)
+xlabel('t [s]','FontSize', 14)
+ylabel('r [m]','FontSize', 14)
+% hold on
+% L = linspace(t(i-2),t(i+2),100)
+% plot( L ,P)
+
+% figure('name','dt')
+% plot(t,dt)
+% xlabel('t [s]','FontSize', 14)
+% ylabel('dt [s]','FontSize', 14)
+% 
+% figure('name','dt/r')
+% plot(r,dt)
+% xlabel('r [m]','FontSize', 14)
+% ylabel('dt [s]','FontSize', 14)
+
+figure('name','norme acc')
+plot(t,AccApp)
+xlabel('t')
+ylabel('||acc||')
+
+figure('name','Pfrott')
+plot(t,Pfrott)
+xlabel('t')
+ylabel('P')
+
     
 function h = circle(x,y,r)
 th = 0:pi/50:2*pi;
 xunit = r * cos(th) + x;
 yunit = r * sin(th) + y;
 plot(xunit, yunit);
+end
+
+function [P,i,pik] = peak(X,Y)
+[a,i]=min(Y)
+p=polyfit(X(i-2:i+2),Y(i-2:i+2),2)
+L = linspace(X(i-2),X(i+2),100)
+P=polyval(p,L)
+pik= min(P)
 end
