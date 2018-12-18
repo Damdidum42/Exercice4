@@ -17,8 +17,10 @@ private:
   double t, dt, tFin, epsilon;
   double G,p0,RT,RL,lambda,C_x,d;
 
-  double fact = 0.999; //pour éviter les boucles infinies
-  int n = 4; //ordre de convergence du schéma utilisé
+  double AccApp,Pfrott;
+
+  double fact = 0.999; //pour Ã©viter les boucles infinies
+  int n = 4; //ordre de convergence du schÃ©ma utilisÃ©
   int nbr_pas = 0;
 
   valarray<double> y;
@@ -33,19 +35,24 @@ private:
         for(int i(0); i<y.size() ; i++){
             *outputFile << " " << y[i];
         }
+        *outputFile << " " << dt << " " << AccApp << " "<< nbr_pas << " "<<Pfrott;
         *outputFile << endl;
   }
 
   void step(){//EFFECTUE UN PAS DE TEMPS DE LA SIMULATION
+                //cout<<"\nt= "<<t<< " ; Tfin ="<<tFin<<endl;//" ; y = (";
+                /*for(size_t i(0); i<y.size(); i++)
+                cout<<y[i]<<" , ";
+                cout<<endl;*/
     dt_adapt(y);
     y = do_one_step(y,dt);
 
-    valarray<double> pos_Appollo = y[slice(4,2,1)];
-    crash((pos_Appollo));
+    /*valarray<double> pos_Appollo = y[slice(4,2,1)];
+    crash((pos_Appollo));*/
   }
 
   valarray<double> do_one_step(valarray<double> y, double dt){ //SIMULE UN PAS DE TEMPS DE LA SIMULATION (POUR LE CALCUL DU PAS DE TEMPS
-    //schéma de Runge Kutta d'ordre 4:
+    //schÃ©ma de Runge Kutta d'ordre 4:
     valarray<double> k1 (y.size());
     valarray<double> k2 (y.size());
     valarray<double> k3 (y.size());
@@ -86,52 +93,35 @@ private:
             }
         }
 	  }
-		double S = 3.14*pow(d/2,2);
-		valarray<double> pos_terre = y[slice(0,2,1)];
-		valarray<double> pos_Appollo = y[slice(4,2,1)];
-		valarray<double> vit_terre = y[slice(6,2,1)];
-		valarray<double> vit_Appollo = y[slice(10,2,1)];
-		
-		valarray<double> F_train = -0.5*p0*exp(-(norm(pos_terre-pos_Appollo)-RT)/lambda)*S*C_x*norm(vit_terre-vit_Appollo)*(vit_Appollo-vit_terre);
-		acc[slice(10,2,1)] += F_train;
+
+      //ajout de la force de trainÃ©e au vaisseau Appollo
+	  double S = 3.14*pow(d/2,2);
+	  valarray<double> pos_terre = y[slice(0,2,1)];
+	  valarray<double> pos_Appollo = y[slice(4,2,1)];
+	  valarray<double> vit_terre = y[slice(6,2,1)];
+	  valarray<double> vit_Appollo = y[slice(10,2,1)];
+
+       //cout<<"terre = ("<<pos_terre[0]<<" , "<<pos_terre[1]<<")"<<" Appollo = ("<<pos_Appollo[0]<<" , "<<pos_Appollo[1]<<")"<<endl;
+       //cout<<"terre-Appollo = "<<norm(pos_terre-pos_Appollo)<<endl;
+	  valarray<double> F_train = -0.5*rho(norm(pos_terre-pos_Appollo))*S*C_x*norm(vit_terre-vit_Appollo)*(vit_Appollo-vit_terre);
+      acc[slice(10,2,1)] += F_train/mass[2];
+
+      //calcul de la norme de la force s'appliquant sur le module appollo
+      valarray<double> acc_Appollo = acc[slice(10,2,1)];
+      AccApp = norm(acc_Appollo);
+
+      //puissance dissipÃ©e
+      Pfrott = 0.0;
+      for(size_t i(0); i<F_train.size(); i++){
+        Pfrott += F_train[i]*vit_Appollo[i];
+      }
 
       return acc;
 
   }
 
-  /*double rho(double r){//FONCTION QUI RETOURNE LA DENSITE EN FONCTION DE LA DISTANCE r
+  double rho(double r){//FONCTION QUI RETOURNE LA DENSITE EN FONCTION DE LA DISTANCE r
     return p0*exp(-(r-RT)/lambda);
-  }*/
-
-  double Emec(valarray<double> y){//CALCUL DE l'ENERGIE MECANIQUE DU SYSTEME
-    double Ecin(0.);
-    double Epot(0.);
-
-    valarray<double> posT = y[slice(0,2,1)];
-    valarray<double> posL = y[slice(2,2,1)];
-    valarray<double> posA = y[slice(4,2,1)];
-
-    valarray<double> vT = y[slice(6,2,1)];
-    valarray<double> vL = y[slice(8,2,1)];
-    valarray<double> vA = y[slice(10,2,1)];
-
-        Ecin = mass[0] * pow(norm(vT),2) + mass[1] * pow(norm(vL),2) + mass[2] * pow(norm(vA),2);
-        Ecin *= 0.5;
-
-        Epot = (mass[0]*mass[1])/norm(posT-posL) + (mass[0]*mass[2])/norm(posT-posA) + (mass[1]*mass[2])/norm(posL-posA);
-        Epot *= -G;
-
-    return Ecin + Epot;
-
-  }
-
-  valarray<double> Ptot(valarray<double> y){//CALCUL DE LA QUANTITE DE MOUVEMENT TOTALE DU SYSTEME
-    valarray<double> P;
-    valarray<double> vT = y[slice(6,2,1)];
-    valarray<double> vL = y[slice(8,2,1)];
-    valarray<double> vA = y[slice(10,2,1)];
-
-    P = mass[0]*vT + mass[1]*vL + mass[2]*vA;
   }
 
   void dt_adapt(valarray<double> y){ //FONCTION POUR ADAPTER LE PAS DE TEMPS
@@ -141,12 +131,13 @@ private:
     valarray<double> y2 = do_one_step(y_prime,0.5*dt);
     double d  = norm(y1-y2);
 
+    //cout<<"epsilon = "<<epsilon<<" ; d="<<d<<endl;
     if(d <= epsilon){
-    dt = dt*pow(( epsilon/d), 1.0/(n+1) );
-        if(dt>=1e8){
-        dt=1e8;
-        }
-    //cout<<"dt: "<<dtold<<"->"<<dt <<endl;
+            dt = dt*pow(( epsilon/d), 1.0/(n+1) );
+                if(dt>=1e8){
+                dt=1e8;
+                }
+            //cout<<"dt: "<<dtold<<"->"<<dt <<endl;
     }
     else do{
             dt = dt*fact*pow( (epsilon/d) , 1.0/(n+1) );
@@ -163,7 +154,7 @@ private:
 
 	}
 
-  valarray<double> C_masse(valarray<double> masses, valarray<double> y){//calcule le centre de masse du systême terre lune
+  valarray<double> C_masse(valarray<double> masses, valarray<double> y){//calcule le centre de masse du systÃªme terre lune
       valarray<double> C_m;
       double masse_tot(0);
       C_m.resize(2);
@@ -180,7 +171,7 @@ private:
       return C_m*(1/masse_tot);
   }
 
-  valarray<double> V_masse(valarray<double> masses, valarray<double> y){//calcule le centre de masse du systême terre lune
+  valarray<double> V_masse(valarray<double> masses, valarray<double> y){//calcule le centre de masse du systÃªme terre lune
       valarray<double> V_m;
       double masse_tot(0);
       size_t nbcorps = masses.size();
@@ -198,16 +189,17 @@ private:
       return V_m*(1/masse_tot);
   }
 
-  void crash(valarray<double> r1){ //fonction qui nous permet de savoir si le vaisseau Appollo est entré en collision
+  void crash(valarray<double> r1){ //fonction qui nous permet de savoir si le vaisseau Appollo est entrÃ© en collision
     valarray<double> posTerre = y[slice(0,2,1)];
     valarray<double> posLune = y[slice(2,2,1)];
 
     if(norm(r1-posTerre)<= RT){
         cout<<"crash avec la terre"<<endl;
+        cout<<"nbr pas de temps: "<<nbr_pas<<endl;
         exit(0);
     }
     if(norm(r1-posLune)<= RL){
-      cout<<"crash avec la terre"<<endl;
+      cout<<"crash avec la Lune"<<endl;
       cout<<"nbr pas de temps: "<<nbr_pas<<endl;
       exit(0);
     }
@@ -267,7 +259,7 @@ public:
     valarray<double> y_G = C_masse(mass,y);
     valarray<double> v_G = V_masse(mass,y);
 
-    //passe au référentiel de centre de masse
+    //passe au rÃ©fÃ©rentiel de centre de masse
     for(int i(0); i< mass.size(); i++){
         y[slice(2*i,2,1)] -=  y_G;
     }
@@ -312,7 +304,7 @@ int main(int argc, char* argv[])
   return 0;
 }
 
-//--------------------------FONCTION POUR GÈRER LES VECTEURS-------------------------
+//--------------------------FONCTION POUR GÃˆRER LES VECTEURS-------------------------
 
 double norm(valarray<double> x){//RETOURNE LA NORME D'UN VECTEUR
 double sum(0);
